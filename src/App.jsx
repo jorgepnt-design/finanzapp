@@ -12,10 +12,10 @@ const DEFAULT_CATEGORIES = [
 ]
 
 const demoExpenses = [
-  {id:'e1', name:'Immobilienkredit', amount:1000, interval:'monatlich', category:'Wohnen', type:'Fixkosten'},
-  {id:'e2', name:'Strom', amount:85, interval:'monatlich', category:'Wohnnebenkosten', type:'Fixkosten'},
-  {id:'e3', name:'Kfz-Versicherung', amount:600, interval:'jährlich', category:'Versicherungen', type:'Fixkosten'},
-  {id:'e4', name:'ETF-Sparplan', amount:300, interval:'monatlich', category:'Altersvorsorge', type:'Sparen'}
+  {id:'e1', name:'Immobilienkredit', amount:1000, interval:'monatlich', category:'Wohnen', type:'Fixkosten', provider:'', contractNumber:'', paymentMethod:'', nextPaymentDate:'', cancellationDate:'', notes:''},
+  {id:'e2', name:'Strom', amount:85, interval:'monatlich', category:'Wohnnebenkosten', type:'Fixkosten', provider:'', contractNumber:'', paymentMethod:'Lastschrift', nextPaymentDate:'', cancellationDate:'', notes:''},
+  {id:'e3', name:'Kfz-Versicherung', amount:600, interval:'jährlich', category:'Versicherungen', type:'Fixkosten', provider:'', contractNumber:'', paymentMethod:'Lastschrift', nextPaymentDate:'', cancellationDate:'', notes:''},
+  {id:'e4', name:'ETF-Sparplan', amount:300, interval:'monatlich', category:'Altersvorsorge', type:'Sparen', provider:'', contractNumber:'', paymentMethod:'', nextPaymentDate:'', cancellationDate:'', notes:''}
 ]
 
 const demoIncome = [
@@ -105,6 +105,20 @@ export default function App() {
     setSessionEmail(null)
   }
 
+  function deleteExpense(expense) {
+    if (!confirm(`Ausgabe „${expense.name}“ wirklich löschen?`)) return
+    setExpenses(expenses.filter(x => x.id !== expense.id))
+  }
+
+  function saveExpense(expense) {
+    if (modal?.expense) {
+      setExpenses(expenses.map(item => item.id === modal.expense.id ? {...expense, id:item.id} : item))
+    } else {
+      setExpenses([...expenses, {...expense, id:crypto.randomUUID()}])
+    }
+    setModal(null)
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -134,7 +148,7 @@ export default function App() {
             ) : (
               <button className="ghost" onClick={simpleLogin}><LogIn size={18}/> Login</button>
             )}
-            <button className="primary" onClick={()=>setModal('expense')}><Plus size={18}/> Ausgabe</button>
+            <button className="primary" onClick={()=>setModal({type:'expense', expense:null})}><Plus size={18}/> Ausgabe</button>
           </div>
         </header>
 
@@ -168,14 +182,14 @@ export default function App() {
                   <SummaryRow label="Fixkostenquote" value={monthlyIncome ? `${Math.round(fixed/monthlyIncome*100)} %` : '–'} />
                   <SummaryRow label="Übrig nach allen Kosten" value={currency(available)} strong />
                 </div>
-                <button className="secondary full" onClick={()=>setModal('income')}><Plus size={17}/> Einnahme hinzufügen</button>
+                <button className="secondary full" onClick={()=>setModal({type:'income'})}><Plus size={17}/> Einnahme hinzufügen</button>
               </Card>
             </section>
           </>
         )}
 
         {tab === 'expenses' && (
-          <Card title="Alle Ausgaben" action={<button className="secondary" onClick={()=>setModal('expense')}><Plus size={17}/> Neu</button>}>
+          <Card title="Alle Ausgaben" action={<button className="secondary" onClick={()=>setModal({type:'expense', expense:null})}><Plus size={17}/> Neu</button>}>
             <div className="list">
               {expenses.map(e => (
                 <div className="list-item" key={e.id}>
@@ -183,9 +197,19 @@ export default function App() {
                   <div className="list-main">
                     <strong>{e.name}</strong>
                     <span>{e.category} · {e.interval} · {e.type}</span>
+                    {(e.provider || e.nextPaymentDate) && (
+                      <span className="list-extra">
+                        {e.provider ? `Anbieter: ${e.provider}` : ''}
+                        {e.provider && e.nextPaymentDate ? ' · ' : ''}
+                        {e.nextPaymentDate ? `Nächste Zahlung: ${formatDate(e.nextPaymentDate)}` : ''}
+                      </span>
+                    )}
                   </div>
                   <div className="list-amount">{currency(e.amount)}</div>
-                  <button className="icon-btn danger" onClick={()=>setExpenses(expenses.filter(x=>x.id!==e.id))}><Trash2 size={18}/></button>
+                  <div className="list-actions">
+                    <button className="icon-btn" title="Bearbeiten" aria-label={`${e.name} bearbeiten`} onClick={()=>setModal({type:'expense', expense:e})}><Pencil size={18}/></button>
+                    <button className="icon-btn danger" title="Löschen" aria-label={`${e.name} löschen`} onClick={()=>deleteExpense(e)}><Trash2 size={18}/></button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -203,7 +227,7 @@ export default function App() {
                   <button className="icon-btn danger" onClick={()=>{
                     const used = expenses.some(e=>e.category===c)
                     if (used) return alert('Diese Kategorie wird noch verwendet. Verschiebe oder lösche zuerst die zugehörigen Ausgaben.')
-                    if (confirm(`Kategorie "${c}" löschen?`)) setCategories(categories.filter(x=>x!==c))
+                    if (confirm(`Kategorie „${c}“ löschen?`)) setCategories(categories.filter(x=>x!==c))
                   }}><Trash2 size={16}/></button>
                 </div>
               ))}
@@ -245,17 +269,15 @@ export default function App() {
       <nav className="mobile-nav">
         <MobileBtn active={tab==='dashboard'} onClick={()=>setTab('dashboard')} icon={<Home/>} text="Home"/>
         <MobileBtn active={tab==='expenses'} onClick={()=>setTab('expenses')} icon={<ReceiptText/>} text="Ausgaben"/>
-        <button className="mobile-add" onClick={()=>setModal('expense')}><Plus/></button>
+        <button className="mobile-add" onClick={()=>setModal({type:'expense', expense:null})}><Plus/></button>
         <MobileBtn active={tab==='categories'} onClick={()=>setTab('categories')} icon={<Tags/>} text="Kategorien"/>
         <MobileBtn active={tab==='settings'} onClick={()=>setTab('settings')} icon={<Settings/>} text="Mehr"/>
       </nav>
 
-      {modal === 'expense' && (
-        <ExpenseModal categories={categories} onClose={()=>setModal(null)} onSave={e=>{
-          setExpenses([...expenses, {...e, id:crypto.randomUUID()}]); setModal(null)
-        }}/>
+      {modal?.type === 'expense' && (
+        <ExpenseModal categories={categories} expense={modal.expense} onClose={()=>setModal(null)} onSave={saveExpense}/>
       )}
-      {modal === 'income' && (
+      {modal?.type === 'income' && (
         <IncomeModal onClose={()=>setModal(null)} onSave={i=>{
           setIncomes([...incomes, {...i, id:crypto.randomUUID()}]); setModal(null)
         }}/>
@@ -295,27 +317,56 @@ function SummaryRow({label,value,strong}) {
 
 function ModalShell({title,onClose,children}) {
   return <div className="modal-backdrop" onMouseDown={onClose}>
-    <div className="modal" onMouseDown={e=>e.stopPropagation()}>
+    <div className="modal expense-modal" onMouseDown={e=>e.stopPropagation()}>
       <div className="modal-head"><h2>{title}</h2><button className="icon-btn" onClick={onClose}><X/></button></div>
       {children}
     </div>
   </div>
 }
 
-function ExpenseModal({categories,onClose,onSave}) {
-  const [form,setForm]=useState({name:'',amount:'',category:categories[0]||'Sonstiges',interval:'monatlich',type:'Fixkosten'})
-  return <ModalShell title="Ausgabe hinzufügen" onClose={onClose}>
+function ExpenseModal({categories, expense, onClose, onSave}) {
+  const [form,setForm]=useState({
+    name: expense?.name || '',
+    amount: expense?.amount ?? '',
+    category: expense?.category || categories[0] || 'Sonstiges',
+    interval: expense?.interval || 'monatlich',
+    type: expense?.type || 'Fixkosten',
+    provider: expense?.provider || '',
+    contractNumber: expense?.contractNumber || '',
+    paymentMethod: expense?.paymentMethod || '',
+    nextPaymentDate: expense?.nextPaymentDate || '',
+    cancellationDate: expense?.cancellationDate || '',
+    notes: expense?.notes || ''
+  })
+
+  const set = (key, value) => setForm(prev => ({...prev, [key]:value}))
+
+  return <ModalShell title={expense ? 'Ausgabe bearbeiten' : 'Ausgabe hinzufügen'} onClose={onClose}>
     <form onSubmit={e=>{e.preventDefault(); onSave({...form, amount:Number(form.amount)})}}>
-      <Field label="Bezeichnung"><input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></Field>
-      <Field label="Betrag"><input required type="number" step="0.01" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})}/></Field>
-      <Field label="Kategorie"><select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.map(c=><option key={c}>{c}</option>)}</select></Field>
-      <Field label="Intervall"><select value={form.interval} onChange={e=>setForm({...form,interval:e.target.value})}>
-        {['monatlich','alle 2 Monate','quartalsweise','halbjährlich','jährlich'].map(x=><option key={x}>{x}</option>)}
-      </select></Field>
-      <Field label="Art"><select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
-        {['Fixkosten','Variable Kosten','Rücklage','Sparen'].map(x=><option key={x}>{x}</option>)}
-      </select></Field>
-      <button className="primary full" type="submit">Speichern</button>
+      <div className="form-grid">
+        <Field label="Bezeichnung"><input required value={form.name} onChange={e=>set('name',e.target.value)} placeholder="z. B. Kfz-Versicherung"/></Field>
+        <Field label="Betrag"><input required type="number" min="0" step="0.01" value={form.amount} onChange={e=>set('amount',e.target.value)} placeholder="0,00"/></Field>
+        <Field label="Kategorie"><select value={form.category} onChange={e=>set('category',e.target.value)}>{categories.map(c=><option key={c}>{c}</option>)}</select></Field>
+        <Field label="Intervall"><select value={form.interval} onChange={e=>set('interval',e.target.value)}>
+          {['monatlich','alle 2 Monate','quartalsweise','halbjährlich','jährlich'].map(x=><option key={x}>{x}</option>)}
+        </select></Field>
+        <Field label="Art"><select value={form.type} onChange={e=>set('type',e.target.value)}>
+          {['Fixkosten','Variable Kosten','Rücklage','Sparen'].map(x=><option key={x}>{x}</option>)}
+        </select></Field>
+        <Field label="Anbieter / Vertragspartner"><input value={form.provider} onChange={e=>set('provider',e.target.value)} placeholder="z. B. HUK24, Allianz, Entega"/></Field>
+        <Field label="Vertragsnummer"><input value={form.contractNumber} onChange={e=>set('contractNumber',e.target.value)} placeholder="optional"/></Field>
+        <Field label="Zahlungsart"><select value={form.paymentMethod} onChange={e=>set('paymentMethod',e.target.value)}>
+          <option value="">Nicht angegeben</option>
+          {['Lastschrift','Überweisung','Kreditkarte','PayPal','Bar','Sonstiges'].map(x=><option key={x}>{x}</option>)}
+        </select></Field>
+        <Field label="Nächste Zahlung"><input type="date" value={form.nextPaymentDate} onChange={e=>set('nextPaymentDate',e.target.value)}/></Field>
+        <Field label="Kündigungsdatum / Frist"><input type="date" value={form.cancellationDate} onChange={e=>set('cancellationDate',e.target.value)}/></Field>
+      </div>
+      <Field label="Notizen"><textarea rows="4" value={form.notes} onChange={e=>set('notes',e.target.value)} placeholder="Zusätzliche Informationen zum Vertrag oder zur Ausgabe …"/></Field>
+      <div className="modal-actions">
+        <button className="ghost" type="button" onClick={onClose}>Abbrechen</button>
+        <button className="primary" type="submit">{expense ? 'Änderungen speichern' : 'Ausgabe speichern'}</button>
+      </div>
     </form>
   </ModalShell>
 }
@@ -346,4 +397,10 @@ function CategoryModal({data,onClose,onSave}) {
 
 function Field({label,children}) {
   return <label className="field"><span>{label}</span>{children}</label>
+}
+
+function formatDate(value) {
+  if (!value) return ''
+  const date = new Date(`${value}T00:00:00`)
+  return new Intl.DateTimeFormat('de-DE').format(date)
 }
