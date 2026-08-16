@@ -1,10 +1,61 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
+import { ArrowLeft, HandCoins } from 'lucide-react'
 import App from './App'
+import Loans from './Loans'
+import { supabase } from './supabase'
 import './styles.css'
+
+function Root() {
+  const [session, setSession] = useState(null)
+  const [route, setRoute] = useState(window.location.hash === '#verliehen' ? 'loans' : 'app')
+
+  useEffect(() => {
+    supabase?.auth.getSession().then(({ data }) => setSession(data.session || null))
+    const { data: listener } = supabase?.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession)) || { data:null }
+    const onHash = () => setRoute(window.location.hash === '#verliehen' ? 'loans' : 'app')
+    window.addEventListener('hashchange', onHash)
+    return () => {
+      listener?.subscription?.unsubscribe()
+      window.removeEventListener('hashchange', onHash)
+    }
+  }, [])
+
+  function openLoans() {
+    window.location.hash = 'verliehen'
+  }
+
+  function back() {
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+    setRoute('app')
+  }
+
+  if (route === 'loans' && session) {
+    return <div className="loans-page">
+      <header className="loans-page-head">
+        <div className="loans-page-brand">
+          <img src="/finanzapp-icon-512.png" alt="FinanzBlick" />
+          <div><strong>FinanzBlick</strong><small>Verliehenes Geld</small></div>
+        </div>
+        <button className="ghost" onClick={back}><ArrowLeft size={18}/> Zurück</button>
+      </header>
+      <main className="loans-page-content">
+        <p className="eyebrow">Persönliche Finanzübersicht</p>
+        <h1>Verliehenes Geld</h1>
+        <div style={{height:18}} />
+        <Loans />
+      </main>
+    </div>
+  }
+
+  return <>
+    <App />
+    {session && <button className="loan-shortcut" onClick={openLoans} title="Verliehenes Geld öffnen"><HandCoins size={20}/><span>Verliehen</span></button>}
+  </>
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <Root />
   </React.StrictMode>
 )
