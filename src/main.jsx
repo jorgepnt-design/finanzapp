@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { ArrowLeft, HandCoins } from 'lucide-react'
 import App from './App'
 import Loans from './Loans'
+import ReportActions from './ReportActions'
 import { supabase } from './supabase'
 import './styles.css'
 
@@ -45,12 +46,16 @@ function Root() {
         <div style={{height:18}} />
         <Loans />
       </main>
+      <ReportActions />
     </div>
   }
 
   return <>
     <App />
-    {session && <button className="loan-shortcut" onClick={openLoans} title="Verliehenes Geld öffnen"><HandCoins size={20}/><span>Verliehen</span></button>}
+    {session && <>
+      <ReportActions />
+      <button className="loan-shortcut" onClick={openLoans} title="Verliehenes Geld öffnen"><HandCoins size={20}/><span>Verliehen</span></button>
+    </>}
   </>
 }
 
