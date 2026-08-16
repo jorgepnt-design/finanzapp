@@ -1,0 +1,39 @@
+.report-actions{
+  position:fixed;
+  right:22px;
+  bottom:82px;
+  z-index:15;
+  display:flex;
+  gap:8px;
+}
+.report-action{
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  background:white;
+  color:#111827;
+  padding:11px 13px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-weight:800;
+  box-shadow:0 10px 26px rgba(17,24,39,.16);
+}
+.report-action.share{background:#111827;color:white;border-color:#111827}
+.report-action:disabled{opacity:.6;cursor:wait}
+.report-action:hover:not(:disabled){transform:translateY(-1px)}
+
+@media(max-width:900px){
+  .report-actions{
+    right:14px;
+    bottom:142px;
+  }
+  .report-action{
+    padding:10px 12px;
+  }
+  .report-action span{font-size:13px}
+}
+
+@media(max-width:560px){
+  .report-actions{gap:6px}
+  .report-action{padding:10px}
+}
