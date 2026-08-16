@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   Home, ReceiptText, Tags, Settings, Plus, Trash2, Pencil,
-  WalletCards, TrendingUp, Landmark, LogOut, X, Cloud, ShieldCheck
+  WalletCards, TrendingUp, Landmark, LogOut, X, Cloud, ShieldCheck, ShoppingBag
 } from 'lucide-react'
 import { supabase } from './supabase'
 import './auth.css'
@@ -12,8 +12,11 @@ const DEFAULT_CATEGORIES = [
   'Freizeit','Rücklagen','Sonstiges'
 ]
 
+const isOneTimeExpense = (expense) => expense.interval === 'einmalig' || expense.type === 'Einmalige Ausgabe'
+
 const intervalToMonthly = (amount, interval) => {
   const a = Number(amount) || 0
+  if (interval === 'einmalig') return 0
   if (interval === 'jährlich') return a / 12
   if (interval === 'halbjährlich') return a / 6
   if (interval === 'quartalsweise') return a / 3
@@ -109,26 +112,37 @@ export default function App() {
     [categories]
   )
 
+  const recurringExpenses = useMemo(() => expenses.filter(e => !isOneTimeExpense(e)), [expenses])
+  const oneTimeExpenses = useMemo(() => expenses.filter(isOneTimeExpense), [expenses])
+
   const monthlyExpenses = useMemo(
-    () => expenses.reduce((s, e) => s + intervalToMonthly(e.amount, e.interval), 0),
-    [expenses]
+    () => recurringExpenses.reduce((s, e) => s + intervalToMonthly(e.amount, e.interval), 0),
+    [recurringExpenses]
   )
   const monthlyIncome = useMemo(
     () => incomes.reduce((s, i) => s + intervalToMonthly(i.amount, i.interval), 0),
     [incomes]
   )
+  const oneTimeTotal = useMemo(
+    () => oneTimeExpenses.reduce((s, e) => s + Number(e.amount || 0), 0),
+    [oneTimeExpenses]
+  )
   const annualExpenses = monthlyExpenses * 12
   const available = monthlyIncome - monthlyExpenses
-  const fixed = expenses.filter(e => e.type === 'Fixkosten')
+  const fixed = recurringExpenses.filter(e => e.type === 'Fixkosten')
+    .reduce((s,e) => s + intervalToMonthly(e.amount,e.interval),0)
+  const variable = recurringExpenses.filter(e => e.type === 'Variable Kosten')
+    .reduce((s,e) => s + intervalToMonthly(e.amount,e.interval),0)
+  const saving = recurringExpenses.filter(e => e.type === 'Rücklage' || e.type === 'Sparen')
     .reduce((s,e) => s + intervalToMonthly(e.amount,e.interval),0)
 
   const categoryTotals = useMemo(() => {
     return categories.map(c => ({
       name: c.name,
-      value: expenses.filter(e => e.categoryId === c.id)
+      value: recurringExpenses.filter(e => e.categoryId === c.id)
         .reduce((s,e)=>s+intervalToMonthly(e.amount,e.interval),0)
     })).filter(x=>x.value>0).sort((a,b)=>b.value-a.value)
-  }, [categories, expenses])
+  }, [categories, recurringExpenses])
 
   const currency = (v) => new Intl.NumberFormat('de-DE', {
     style:'currency', currency:'EUR'
@@ -237,7 +251,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">FB</div>
+          <div className="brand-mark"><img src="/finanzapp-icon-512.png" alt="FinanzBlick" className="brand-logo-image" /></div>
           <div><strong>FinanzBlick</strong><small>Meine Finanzen</small></div>
         </div>
         <nav>
@@ -264,32 +278,54 @@ export default function App() {
         {tab === 'dashboard' && (
           <>
             <section className="metric-grid">
-              <Metric icon={<ReceiptText/>} label="Monatliche Kosten" value={currency(monthlyExpenses)} />
-              <Metric icon={<TrendingUp/>} label="Jährliche Kosten" value={currency(annualExpenses)} />
+              <Metric icon={<ReceiptText/>} label="Laufende Kosten / Monat" value={currency(monthlyExpenses)} />
+              <Metric icon={<TrendingUp/>} label="Laufende Kosten / Jahr" value={currency(annualExpenses)} />
+              <Metric icon={<ShoppingBag/>} label="Einmalige Ausgaben" value={currency(oneTimeTotal)} />
               <Metric icon={<WalletCards/>} label="Einnahmen / Monat" value={currency(monthlyIncome)} />
-              <Metric icon={<Landmark/>} label="Verfügbar" value={currency(available)} emphasis={available >= 0 ? 'positive':'negative'} />
+              <Metric icon={<Landmark/>} label="Verfügbar nach laufenden Kosten" value={currency(available)} emphasis={available >= 0 ? 'positive':'negative'} />
             </section>
             <section className="two-col">
-              <Card title="Kosten nach Kategorie">
+              <Card title="Laufende Kosten nach Kategorie">
                 <div className="category-bars">
                   {categoryTotals.length ? categoryTotals.map(c => (
                     <div key={c.name} className="bar-row">
                       <div className="bar-label"><span>{c.name}</span><strong>{currency(c.value)}</strong></div>
                       <div className="bar-track"><div className="bar-fill" style={{width:`${Math.max(6,(c.value/monthlyExpenses)*100)}%`}}/></div>
                     </div>
-                  )) : <p className="muted">Noch keine Ausgaben vorhanden.</p>}
+                  )) : <p className="muted">Noch keine laufenden Ausgaben vorhanden.</p>}
                 </div>
               </Card>
               <Card title="Monatliche Übersicht">
                 <div className="summary-list">
                   <SummaryRow label="Fixkosten" value={currency(fixed)} />
-                  <SummaryRow label="Sonstige Kosten / Sparen" value={currency(monthlyExpenses-fixed)} />
+                  <SummaryRow label="Variable laufende Kosten" value={currency(variable)} />
+                  <SummaryRow label="Rücklagen / Sparen" value={currency(saving)} />
                   <SummaryRow label="Fixkostenquote" value={monthlyIncome ? `${Math.round(fixed/monthlyIncome*100)} %` : '–'} />
-                  <SummaryRow label="Übrig nach allen Kosten" value={currency(available)} strong />
+                  <SummaryRow label="Übrig nach laufenden Kosten" value={currency(available)} strong />
                 </div>
                 <button className="secondary full" onClick={()=>setModal({type:'income'})}><Plus size={17}/> Einnahme hinzufügen</button>
               </Card>
             </section>
+            <Card title="Einmalige Ausgaben">
+              {!oneTimeExpenses.length ? <p className="muted">Noch keine einmaligen Ausgaben erfasst.</p> : (
+                <div className="list">
+                  {oneTimeExpenses.slice(0, 8).map(e => (
+                    <div className="list-item" key={e.id}>
+                      <div className="list-icon">{e.name.slice(0,1).toUpperCase()}</div>
+                      <div className="list-main">
+                        <strong>{e.name}</strong>
+                        <span>{categoryById[e.categoryId] || 'Ohne Kategorie'}{e.nextPaymentDate ? ` · ${formatDate(e.nextPaymentDate)}` : ''}</span>
+                      </div>
+                      <div className="list-amount">{currency(e.amount)}</div>
+                      <div className="list-actions">
+                        <button className="icon-btn" title="Bearbeiten" onClick={()=>setModal({type:'expense', expense:e})}><Pencil size={18}/></button>
+                        <button className="icon-btn danger" title="Löschen" onClick={()=>deleteExpense(e)}><Trash2 size={18}/></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
           </>
         )}
 
@@ -304,7 +340,7 @@ export default function App() {
                     <strong>{e.name}</strong>
                     <span>{categoryById[e.categoryId] || 'Ohne Kategorie'} · {e.interval} · {e.type}</span>
                     {(e.provider || e.nextPaymentDate) && <span className="list-extra">
-                      {e.provider ? `Anbieter: ${e.provider}` : ''}{e.provider && e.nextPaymentDate ? ' · ' : ''}{e.nextPaymentDate ? `Nächste Zahlung: ${formatDate(e.nextPaymentDate)}` : ''}
+                      {e.provider ? `Anbieter: ${e.provider}` : ''}{e.provider && e.nextPaymentDate ? ' · ' : ''}{e.nextPaymentDate ? `${isOneTimeExpense(e) ? 'Zahlungsdatum' : 'Nächste Zahlung'}: ${formatDate(e.nextPaymentDate)}` : ''}
                     </span>}
                   </div>
                   <div className="list-amount">{currency(e.amount)}</div>
@@ -391,7 +427,7 @@ function AuthScreen() {
 
   return <div className="auth-page">
     <div className="auth-card">
-      <div className="auth-logo">FB</div>
+      <div className="auth-logo"><img src="/finanzapp-icon-512.png" alt="FinanzBlick" className="auth-logo-image" /></div>
       <p className="eyebrow">FinanzBlick</p>
       <h1>{mode === 'login' ? 'Anmelden' : 'Konto erstellen'}</h1>
       <p className="muted">Deine Finanzdaten sind erst nach der Anmeldung sichtbar und werden mit deinem persönlichen Supabase-Konto synchronisiert.</p>
@@ -431,20 +467,30 @@ function ExpenseModal({categories, expense, onClose, onSave}) {
     cancellationDate: expense?.cancellationDate || '', notes: expense?.notes || ''
   })
   const set = (key, value) => setForm(prev => ({...prev, [key]:value}))
+  const changeInterval = (value) => {
+    setForm(prev => ({
+      ...prev,
+      interval: value,
+      type: value === 'einmalig' ? 'Einmalige Ausgabe' : (prev.type === 'Einmalige Ausgabe' ? 'Variable Kosten' : prev.type)
+    }))
+  }
+  const oneTime = form.interval === 'einmalig'
+
   return <ModalShell title={expense ? 'Ausgabe bearbeiten' : 'Ausgabe hinzufügen'} onClose={onClose}>
     <form onSubmit={e=>{e.preventDefault(); onSave({...form, amount:Number(form.amount)})}}>
       <div className="form-grid">
-        <Field label="Bezeichnung"><input required value={form.name} onChange={e=>set('name',e.target.value)} placeholder="z. B. Kfz-Versicherung"/></Field>
+        <Field label="Bezeichnung"><input required value={form.name} onChange={e=>set('name',e.target.value)} placeholder="z. B. Klimaanlage"/></Field>
         <Field label="Betrag"><input required type="number" min="0" step="0.01" value={form.amount} onChange={e=>set('amount',e.target.value)}/></Field>
         <Field label="Kategorie"><select required value={form.categoryId} onChange={e=>set('categoryId',e.target.value)}>{categories.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></Field>
-        <Field label="Intervall"><select value={form.interval} onChange={e=>set('interval',e.target.value)}>{['monatlich','alle 2 Monate','quartalsweise','halbjährlich','jährlich'].map(x=><option key={x}>{x}</option>)}</select></Field>
-        <Field label="Art"><select value={form.type} onChange={e=>set('type',e.target.value)}>{['Fixkosten','Variable Kosten','Rücklage','Sparen'].map(x=><option key={x}>{x}</option>)}</select></Field>
-        <Field label="Anbieter / Vertragspartner"><input value={form.provider} onChange={e=>set('provider',e.target.value)} placeholder="z. B. HUK24, Allianz, Entega"/></Field>
-        <Field label="Vertragsnummer"><input value={form.contractNumber} onChange={e=>set('contractNumber',e.target.value)} /></Field>
+        <Field label="Intervall"><select value={form.interval} onChange={e=>changeInterval(e.target.value)}>{['monatlich','alle 2 Monate','quartalsweise','halbjährlich','jährlich','einmalig'].map(x=><option key={x}>{x}</option>)}</select></Field>
+        <Field label="Art"><select value={form.type} onChange={e=>set('type',e.target.value)} disabled={oneTime}>{['Fixkosten','Variable Kosten','Rücklage','Sparen','Einmalige Ausgabe'].map(x=><option key={x}>{x}</option>)}</select></Field>
+        <Field label="Anbieter / Vertragspartner"><input value={form.provider} onChange={e=>set('provider',e.target.value)} placeholder={oneTime ? 'z. B. MediaMarkt, Bauhaus' : 'z. B. HUK24, Allianz, Entega'}/></Field>
+        <Field label="Vertragsnummer / Beleg"><input value={form.contractNumber} onChange={e=>set('contractNumber',e.target.value)} /></Field>
         <Field label="Zahlungsart"><select value={form.paymentMethod} onChange={e=>set('paymentMethod',e.target.value)}><option value="">Nicht angegeben</option>{['Lastschrift','Überweisung','Kreditkarte','PayPal','Bar','Sonstiges'].map(x=><option key={x}>{x}</option>)}</select></Field>
-        <Field label="Nächste Zahlung"><input type="date" value={form.nextPaymentDate} onChange={e=>set('nextPaymentDate',e.target.value)}/></Field>
-        <Field label="Kündigungsdatum / Frist"><input type="date" value={form.cancellationDate} onChange={e=>set('cancellationDate',e.target.value)}/></Field>
+        <Field label={oneTime ? 'Kauf-/Zahlungsdatum' : 'Nächste Zahlung'}><input type="date" value={form.nextPaymentDate} onChange={e=>set('nextPaymentDate',e.target.value)}/></Field>
+        {!oneTime && <Field label="Kündigungsdatum / Frist"><input type="date" value={form.cancellationDate} onChange={e=>set('cancellationDate',e.target.value)}/></Field>}
       </div>
+      {oneTime && <p className="muted">Diese Ausgabe wird separat ausgewiesen und nicht in deine monatlichen oder jährlichen laufenden Kosten eingerechnet.</p>}
       <Field label="Notizen"><textarea rows="4" value={form.notes} onChange={e=>set('notes',e.target.value)} /></Field>
       <div className="modal-actions"><button className="ghost" type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit">{expense ? 'Änderungen speichern' : 'Ausgabe speichern'}</button></div>
     </form>
@@ -469,6 +515,6 @@ function CategoryModal({data,onClose,onSave}) {
 function Field({label,children}) { return <label className="field"><span>{label}</span>{children}</label> }
 function formatDate(value) { if (!value) return ''; return new Intl.DateTimeFormat('de-DE').format(new Date(`${value}T00:00:00`)) }
 function fromDbExpense(e) { return { id:e.id, name:e.name, amount:Number(e.amount), categoryId:e.category_id, type:e.expense_type, interval:e.payment_interval, nextPaymentDate:e.next_payment_date || '', paymentMethod:e.payment_method || '', provider:e.provider || '', contractNumber:e.contract_number || '', cancellationDate:e.cancellation_date || '', notes:e.notes || '' } }
-function toDbExpense(e, userId) { return { user_id:userId, category_id:e.categoryId || null, name:e.name, amount:Number(e.amount), expense_type:e.type, payment_interval:e.interval, next_payment_date:e.nextPaymentDate || null, payment_method:e.paymentMethod || null, provider:e.provider || null, contract_number:e.contractNumber || null, cancellation_date:e.cancellationDate || null, notes:e.notes || null, updated_at:new Date().toISOString() } }
+function toDbExpense(e, userId) { return { user_id:userId, category_id:e.categoryId || null, name:e.name, amount:Number(e.amount), expense_type:e.interval === 'einmalig' ? 'Einmalige Ausgabe' : e.type, payment_interval:e.interval, next_payment_date:e.nextPaymentDate || null, payment_method:e.paymentMethod || null, provider:e.provider || null, contract_number:e.contractNumber || null, cancellation_date:e.interval === 'einmalig' ? null : (e.cancellationDate || null), notes:e.notes || null, updated_at:new Date().toISOString() } }
 function fromDbIncome(i) { return { id:i.id, name:i.name, amount:Number(i.amount), interval:i.payment_interval, notes:i.notes || '' } }
 function exportBackup(data) { const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='finanzblick-backup.json'; a.click(); URL.revokeObjectURL(url) }
