@@ -504,11 +504,11 @@ function ExpenseModal({categories, expense, onClose, onSave}) {
         <Field label="Bezeichnung"><input required value={form.name} onChange={e=>set('name',e.target.value)} placeholder="z. B. Klimaanlage"/></Field>
         <Field label="Betrag"><input required type="number" min="0" step="0.01" value={form.amount} onChange={e=>set('amount',e.target.value)}/></Field>
         <Field label="Kategorie"><select required value={form.categoryId} onChange={e=>set('categoryId',e.target.value)}>{categories.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></Field>
-        <Field label="Intervall"><select value={form.interval} onChange={e=>changeInterval(e.target.value)}>{['monatlich','Dauerauftrag','alle 2 Monate','quartalsweise','halbjährlich','jährlich','einmalig'].map(x=><option key={x}>{x}</option>)}</select></Field>
+        <Field label="Intervall"><select value={form.interval} onChange={e=>changeInterval(e.target.value)}>{['monatlich','alle 2 Monate','quartalsweise','halbjährlich','jährlich','einmalig'].map(x=><option key={x}>{x}</option>)}</select></Field>
         <Field label="Art"><select value={form.type} onChange={e=>set('type',e.target.value)} disabled={oneTime}>{['Fixkosten','Variable Kosten','Rücklage','Sparen','Einmalige Ausgabe'].map(x=><option key={x}>{x}</option>)}</select></Field>
         <Field label="Anbieter / Vertragspartner"><input value={form.provider} onChange={e=>set('provider',e.target.value)} placeholder={oneTime ? 'z. B. MediaMarkt, Bauhaus' : 'z. B. HUK24, Allianz, Entega'}/></Field>
         <Field label="Vertragsnummer / Beleg"><input value={form.contractNumber} onChange={e=>set('contractNumber',e.target.value)} /></Field>
-        <Field label="Zahlungsart"><select value={form.paymentMethod} onChange={e=>set('paymentMethod',e.target.value)}><option value="">Nicht angegeben</option>{['Lastschrift','Überweisung','Kreditkarte','PayPal','Bar','Sonstiges'].map(x=><option key={x}>{x}</option>)}</select></Field>
+        <Field label="Zahlungsart"><select value={form.paymentMethod} onChange={e=>set('paymentMethod',e.target.value)}><option value="">Nicht angegeben</option>{['Lastschrift','Dauerauftrag','Überweisung','Kreditkarte','PayPal','Bar','Sonstiges'].map(x=><option key={x}>{x}</option>)}</select></Field>
         <Field label={oneTime ? 'Kauf-/Zahlungsdatum' : 'Nächste Zahlung'}><input type="date" value={form.nextPaymentDate} onChange={e=>set('nextPaymentDate',e.target.value)}/></Field>
         {!oneTime && <Field label="Kündigungsdatum / Frist"><input type="date" value={form.cancellationDate} onChange={e=>set('cancellationDate',e.target.value)}/></Field>}
       </div>
