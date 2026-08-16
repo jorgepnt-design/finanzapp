@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { FileDown, Share2 } from 'lucide-react'
 import { supabase } from './supabase'
 import { createFinancePdf, downloadFinancePdf, shareFinancePdf } from './pdfReport'
+import './report.css'
 
 export default function ReportActions() {
   const [busy, setBusy] = useState(false)
