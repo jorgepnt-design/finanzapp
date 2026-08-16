@@ -35,6 +35,7 @@ export default function App() {
   const [incomes, setIncomes] = useState([])
   const [modal, setModal] = useState(null)
   const [editCategory, setEditCategory] = useState(null)
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('all')
 
   useEffect(() => {
     if (!supabase) {
@@ -114,6 +115,12 @@ export default function App() {
 
   const recurringExpenses = useMemo(() => expenses.filter(e => !isOneTimeExpense(e)), [expenses])
   const oneTimeExpenses = useMemo(() => expenses.filter(isOneTimeExpense), [expenses])
+  const filteredExpenses = useMemo(
+    () => expenseCategoryFilter === 'all'
+      ? expenses
+      : expenses.filter(e => e.categoryId === expenseCategoryFilter),
+    [expenses, expenseCategoryFilter]
+  )
 
   const monthlyExpenses = useMemo(
     () => recurringExpenses.reduce((s, e) => s + intervalToMonthly(e.amount, e.interval), 0),
@@ -234,6 +241,7 @@ export default function App() {
     const { error } = await supabase.from('categories').delete().eq('id', category.id)
     if (error) return showSyncError(error)
     setCategories(items => items.filter(c => c.id !== category.id))
+    if (expenseCategoryFilter === category.id) setExpenseCategoryFilter('all')
     setSyncState('✓ Synchronisiert')
   }
 
@@ -331,9 +339,23 @@ export default function App() {
 
         {tab === 'expenses' && (
           <Card title="Alle Ausgaben" action={<button className="secondary" onClick={()=>setModal({type:'expense', expense:null})}><Plus size={17}/> Neu</button>}>
+            <div style={{display:'flex', gap:'10px', alignItems:'end', flexWrap:'wrap', marginBottom:'18px'}}>
+              <label className="field" style={{minWidth:'220px', maxWidth:'340px'}}>
+                <span>Nach Kategorie filtern</span>
+                <select value={expenseCategoryFilter} onChange={e=>setExpenseCategoryFilter(e.target.value)}>
+                  <option value="all">Alle Kategorien</option>
+                  {categories.map(c => <option value={c.id} key={c.id}>{c.name}</option>)}
+                </select>
+              </label>
+              {expenseCategoryFilter !== 'all' && (
+                <button className="ghost" onClick={()=>setExpenseCategoryFilter('all')}>Filter zurücksetzen</button>
+              )}
+              <span className="muted" style={{marginBottom:'12px'}}>{filteredExpenses.length} von {expenses.length} Ausgaben</span>
+            </div>
             <div className="list">
               {!expenses.length && <p className="muted">Noch keine Ausgaben gespeichert.</p>}
-              {expenses.map(e => (
+              {!!expenses.length && !filteredExpenses.length && <p className="muted">In dieser Kategorie sind noch keine Ausgaben gespeichert.</p>}
+              {filteredExpenses.map(e => (
                 <div className="list-item" key={e.id}>
                   <div className="list-icon">{e.name.slice(0,1).toUpperCase()}</div>
                   <div className="list-main">
