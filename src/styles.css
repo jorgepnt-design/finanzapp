@@ -53,6 +53,12 @@ textarea{resize:vertical;min-height:92px}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
 .mobile-nav{display:none}
+.loan-shortcut{position:fixed;right:22px;bottom:22px;z-index:15;border:0;border-radius:16px;background:#111827;color:white;padding:13px 16px;display:flex;align-items:center;gap:9px;font-weight:800;box-shadow:0 12px 30px rgba(17,24,39,.28)}
+.loan-shortcut:hover{transform:translateY(-1px)}
+.loans-page{min-height:100vh;background:#f5f7fb}
+.loans-page-head{height:78px;background:#111827;color:white;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+.loans-page-brand{display:flex;align-items:center;gap:12px}.loans-page-brand img{width:48px;height:48px;border-radius:14px;object-fit:cover}.loans-page-brand strong,.loans-page-brand small{display:block}.loans-page-brand small{color:#9ca3af;margin-top:2px}
+.loans-page-content{padding:30px;max-width:1200px;margin:0 auto}
 @media(max-width:900px){
   .app-shell{display:block}.sidebar{display:none}.content{padding:18px 16px 96px}
   .topbar{align-items:flex-start}.topbar h1{font-size:26px}.top-actions .ghost{display:none}
@@ -60,10 +66,13 @@ textarea{resize:vertical;min-height:92px}
   .mobile-nav{display:grid;grid-template-columns:1fr 1fr 64px 1fr 1fr;position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border-top:1px solid #e5e7eb;padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:10}
   .mobile-btn{border:0;background:transparent;display:grid;place-items:center;color:#6b7280;gap:3px;padding:4px}.mobile-btn svg{width:21px}.mobile-btn small{font-size:10px}.mobile-btn.active{color:#111827}
   .mobile-add{width:52px;height:52px;border:0;border-radius:18px;background:#111827;color:white;display:grid;place-items:center;margin:-20px auto 0}
+  .loan-shortcut{right:14px;bottom:86px;padding:11px 13px;border-radius:14px}.loan-shortcut span{font-size:13px}
+  .loans-page-head{height:auto;padding:12px 14px}.loans-page-head .ghost{min-height:42px}.loans-page-content{padding:20px 16px 40px}
 }
 @media(max-width:560px){
   .metric-grid{grid-template-columns:1fr 1fr;gap:10px}.metric-card{padding:14px}.metric-card strong{font-size:18px}
   .chip-grid{grid-template-columns:1fr}.list-item{grid-template-columns:40px minmax(0,1fr) auto}.list-actions{grid-column:3;grid-row:2}.list-amount{font-size:14px;align-self:start}.list-main .list-extra{line-height:1.35}
   .primary,.secondary,.ghost,.danger-outline{min-height:44px}.top-actions .primary{padding:10px 12px}.top-actions .primary svg{margin-right:-3px}
   .form-grid{grid-template-columns:1fr}.modal-backdrop{padding:10px}.modal{padding:16px;max-height:calc(100vh - 20px);border-radius:18px}.modal-head{top:-16px}.modal-actions{display:grid;grid-template-columns:1fr 1fr}.modal-actions button{width:100%}
+  .loans-page-brand div{display:none}.loans-page-content h1{font-size:26px}
 }
