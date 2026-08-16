@@ -4,7 +4,7 @@
 }
 *{box-sizing:border-box}
 body{margin:0;min-width:320px;background:#f5f7fb}
-button,input,select{font:inherit}
+button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 .app-shell{min-height:100vh;display:grid;grid-template-columns:250px 1fr}
 .sidebar{background:#111827;color:white;padding:26px 18px;position:sticky;top:0;height:100vh}
@@ -38,15 +38,19 @@ h1{margin:0;font-size:30px}h2{margin:0;font-size:18px}
 .category-bars{display:grid;gap:16px}.bar-label{display:flex;justify-content:space-between;gap:10px;font-size:14px;margin-bottom:6px}
 .bar-track{height:9px;background:#edf0f5;border-radius:999px;overflow:hidden}.bar-fill{height:100%;background:#111827;border-radius:999px}
 .summary-list{display:grid;gap:2px}.summary-row{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #eef0f3}.summary-row.strong{font-size:17px}
-.list{display:grid}.list-item{display:grid;grid-template-columns:44px 1fr auto 36px;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid #eef0f3}
+.list{display:grid}.list-item{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid #eef0f3}
 .list-icon{width:40px;height:40px;border-radius:12px;background:#f3f4f6;display:grid;place-items:center;font-weight:800}.list-main span{display:block;color:#6b7280;font-size:13px;margin-top:3px}
-.list-amount{font-weight:800}.icon-btn{border:0;background:transparent;border-radius:10px;padding:7px;color:#6b7280}.icon-btn:hover{background:#f3f4f6}.icon-btn.danger{color:#b91c1c}
+.list-main .list-extra{font-size:12px;color:#8a94a4}.list-amount{font-weight:800;white-space:nowrap}.list-actions{display:flex;gap:2px;align-items:center}.icon-btn{border:0;background:transparent;border-radius:10px;padding:7px;color:#6b7280}.icon-btn:hover{background:#f3f4f6}.icon-btn.danger{color:#b91c1c}
 .chip-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.category-chip{border:1px solid #e5e7eb;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:6px}.category-chip span{flex:1;font-weight:700}
 .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.45);display:grid;place-items:center;padding:18px;z-index:20}
-.modal{background:white;width:min(500px,100%);border-radius:20px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.2)}
-.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.modal{background:white;width:min(500px,100%);border-radius:20px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.2);max-height:calc(100vh - 36px);overflow:auto}
+.modal.expense-modal{width:min(760px,100%)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:sticky;top:-20px;background:white;padding:4px 0 10px;z-index:2}
 form{display:grid;gap:12px}.field{display:grid;gap:6px}.field span{font-size:13px;font-weight:700;color:#4b5563}
-input,select{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:12px;background:white;min-height:46px}
+input,select,textarea{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:12px;background:white;min-height:46px;color:#111827}
+textarea{resize:vertical;min-height:92px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
 .mobile-nav{display:none}
 @media(max-width:900px){
   .app-shell{display:block}.sidebar{display:none}.content{padding:18px 16px 96px}
@@ -58,6 +62,7 @@ input,select{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:12px
 }
 @media(max-width:560px){
   .metric-grid{grid-template-columns:1fr 1fr;gap:10px}.metric-card{padding:14px}.metric-card strong{font-size:18px}
-  .chip-grid{grid-template-columns:1fr}.list-item{grid-template-columns:40px 1fr auto}.list-item .icon-btn{grid-column:3}.list-amount{font-size:14px}
+  .chip-grid{grid-template-columns:1fr}.list-item{grid-template-columns:40px minmax(0,1fr) auto}.list-actions{grid-column:3;grid-row:2}.list-amount{font-size:14px;align-self:start}.list-main .list-extra{line-height:1.35}
   .primary,.secondary,.ghost,.danger-outline{min-height:44px}.top-actions .primary{padding:10px 12px}.top-actions .primary svg{margin-right:-3px}
+  .form-grid{grid-template-columns:1fr}.modal-backdrop{padding:10px}.modal{padding:16px;max-height:calc(100vh - 20px);border-radius:18px}.modal-head{top:-16px}.modal-actions{display:grid;grid-template-columns:1fr 1fr}.modal-actions button{width:100%}
 }
