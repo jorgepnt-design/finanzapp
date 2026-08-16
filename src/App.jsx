@@ -521,10 +521,12 @@ function ExpenseModal({categories, expense, onClose, onSave}) {
 
 function IncomeModal({onClose,onSave}) {
   const [form,setForm]=useState({name:'Einkommen',amount:'',interval:'monatlich',notes:''})
+  const oneTime = form.interval === 'einmalig'
   return <ModalShell title="Einnahme hinzufügen" onClose={onClose}><form onSubmit={e=>{e.preventDefault(); onSave({...form, amount:Number(form.amount)})}}>
-    <Field label="Bezeichnung"><input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></Field>
+    <Field label="Bezeichnung"><input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder={oneTime ? 'z. B. Bonus, Geschenk, Verkauf' : 'z. B. Gehalt, Rente, Mieteinnahme'}/></Field>
     <Field label="Betrag"><input required type="number" step="0.01" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})}/></Field>
-    <Field label="Intervall"><select value={form.interval} onChange={e=>setForm({...form,interval:e.target.value})}>{['monatlich','quartalsweise','halbjährlich','jährlich'].map(x=><option key={x}>{x}</option>)}</select></Field>
+    <Field label="Intervall"><select value={form.interval} onChange={e=>setForm({...form,interval:e.target.value})}>{['monatlich','quartalsweise','halbjährlich','jährlich','einmalig'].map(x=><option key={x}>{x}</option>)}</select></Field>
+    {oneTime && <p className="muted">Diese Einnahme wird gespeichert, aber nicht in dein monatliches Einkommen eingerechnet.</p>}
     <Field label="Notiz"><textarea rows="3" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></Field>
     <button className="primary full" type="submit">Speichern</button>
   </form></ModalShell>
