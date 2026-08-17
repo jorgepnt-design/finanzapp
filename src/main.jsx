@@ -1,20 +1,31 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import { ArrowLeft, HandCoins } from 'lucide-react'
+import { ArrowLeft, BarChart3, HandCoins } from 'lucide-react'
 import App from './App'
 import Loans from './Loans'
+import VariableAnalysis from './VariableAnalysis'
 import ReportActions from './ReportActions'
 import { supabase } from './supabase'
 import './styles.css'
 
 function Root() {
+  const initialRoute = window.location.hash === '#verliehen'
+    ? 'loans'
+    : window.location.hash === '#auswertung'
+      ? 'analysis'
+      : 'app'
+
   const [session, setSession] = useState(null)
-  const [route, setRoute] = useState(window.location.hash === '#verliehen' ? 'loans' : 'app')
+  const [route, setRoute] = useState(initialRoute)
 
   useEffect(() => {
     supabase?.auth.getSession().then(({ data }) => setSession(data.session || null))
     const { data: listener } = supabase?.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession)) || { data:null }
-    const onHash = () => setRoute(window.location.hash === '#verliehen' ? 'loans' : 'app')
+    const onHash = () => {
+      if (window.location.hash === '#verliehen') setRoute('loans')
+      else if (window.location.hash === '#auswertung') setRoute('analysis')
+      else setRoute('app')
+    }
     window.addEventListener('hashchange', onHash)
     return () => {
       listener?.subscription?.unsubscribe()
@@ -24,6 +35,10 @@ function Root() {
 
   function openLoans() {
     window.location.hash = 'verliehen'
+  }
+
+  function openAnalysis() {
+    window.location.hash = 'auswertung'
   }
 
   function back() {
@@ -50,11 +65,33 @@ function Root() {
     </div>
   }
 
+  if (route === 'analysis' && session) {
+    return <div className="loans-page">
+      <header className="loans-page-head">
+        <div className="loans-page-brand">
+          <img src="/finanzapp-icon-512.png" alt="FinanzBlick" />
+          <div><strong>FinanzBlick</strong><small>Variable Kosten</small></div>
+        </div>
+        <button className="ghost" onClick={back}><ArrowLeft size={18}/> Zurück</button>
+      </header>
+      <main className="loans-page-content">
+        <p className="eyebrow">Persönliche Finanzübersicht</p>
+        <h1>Auswertung variable Kosten</h1>
+        <div style={{height:18}} />
+        <VariableAnalysis />
+      </main>
+      <ReportActions />
+    </div>
+  }
+
   return <>
     <App />
     {session && <>
       <ReportActions />
-      <button className="loan-shortcut" onClick={openLoans} title="Verliehenes Geld öffnen"><HandCoins size={20}/><span>Verliehen</span></button>
+      <div className="finance-shortcuts">
+        <button className="analysis-shortcut" onClick={openAnalysis} title="Variable Kosten auswerten"><BarChart3 size={20}/><span>Auswertung</span></button>
+        <button className="loan-shortcut" onClick={openLoans} title="Verliehenes Geld öffnen"><HandCoins size={20}/><span>Verliehen</span></button>
+      </div>
     </>}
   </>
 }
