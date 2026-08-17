@@ -8,6 +8,58 @@ import ReportActions from './ReportActions'
 import { supabase } from './supabase'
 import './styles.css'
 
+function parseEuro(text = '') {
+  const cleaned = text.replace(/\s/g, '').replace(/€/g, '').replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '')
+  const value = Number(cleaned)
+  return Number.isFinite(value) ? value : 0
+}
+
+function QuotaEnhancer({ active }) {
+  useEffect(() => {
+    if (!active) return
+
+    const update = () => {
+      const rows = [...document.querySelectorAll('.summary-row')]
+      const fixedQuotaRow = rows.find(row => row.querySelector('span')?.textContent?.trim() === 'Fixkostenquote')
+      if (!fixedQuotaRow) return
+
+      const metrics = [...document.querySelectorAll('.metric-card')]
+      const incomeMetric = metrics.find(card => card.querySelector('span')?.textContent?.trim() === 'Einnahmen / Monat')
+      const costMetric = metrics.find(card => card.querySelector('span')?.textContent?.trim() === 'Kosten aktueller Monat')
+      if (!incomeMetric || !costMetric) return
+
+      const income = parseEuro(incomeMetric.querySelector('strong')?.textContent)
+      const costs = parseEuro(costMetric.querySelector('strong')?.textContent)
+      const quota = income > 0 ? `${Math.round((costs / income) * 100)} %` : '–'
+
+      let totalRow = document.querySelector('[data-total-cost-quota="true"]')
+      if (!totalRow) {
+        totalRow = document.createElement('div')
+        totalRow.className = 'summary-row'
+        totalRow.dataset.totalCostQuota = 'true'
+        totalRow.innerHTML = '<span>Gesamtkostenquote</span><b></b>'
+        fixedQuotaRow.insertAdjacentElement('afterend', totalRow)
+      }
+
+      const valueNode = totalRow.querySelector('b')
+      if (valueNode && valueNode.textContent !== quota) valueNode.textContent = quota
+    }
+
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+    window.addEventListener('focus', update)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('focus', update)
+      document.querySelector('[data-total-cost-quota="true"]')?.remove()
+    }
+  }, [active])
+
+  return null
+}
+
 function Root() {
   const initialRoute = window.location.hash === '#verliehen'
     ? 'loans'
@@ -90,6 +142,7 @@ function Root() {
 
   return <>
     <App />
+    <QuotaEnhancer active={Boolean(session)} />
     {session && <>
       <ReportActions />
       <div className="finance-shortcuts">
