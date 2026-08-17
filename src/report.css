@@ -26,7 +26,7 @@
 @media(max-width:900px){
   .report-actions{
     right:14px;
-    bottom:210px;
+    bottom:272px;
     display:grid;
     grid-template-columns:52px;
     gap:10px;
@@ -44,7 +44,7 @@
 @media(max-width:560px){
   .report-actions{
     right:14px;
-    bottom:206px;
+    bottom:266px;
     grid-template-columns:50px;
     gap:10px;
   }
