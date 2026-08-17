@@ -14,6 +14,17 @@ function parseEuro(text = '') {
   return Number.isFinite(value) ? value : 0
 }
 
+async function ensureFinanzblickUser(session) {
+  const userId = session?.user?.id
+  if (!userId || !supabase) return
+
+  const { error } = await supabase
+    .from('finanzblick_users')
+    .upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true })
+
+  if (error) console.error('FinanzBlick-Aktivierung fehlgeschlagen:', error)
+}
+
 function QuotaEnhancer({ active }) {
   useEffect(() => {
     if (!active) return
@@ -71,8 +82,17 @@ function Root() {
   const [route, setRoute] = useState(initialRoute)
 
   useEffect(() => {
-    supabase?.auth.getSession().then(({ data }) => setSession(data.session || null))
-    const { data: listener } = supabase?.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession)) || { data:null }
+    supabase?.auth.getSession().then(async ({ data }) => {
+      const currentSession = data.session || null
+      if (currentSession) await ensureFinanzblickUser(currentSession)
+      setSession(currentSession)
+    })
+
+    const { data: listener } = supabase?.auth.onAuthStateChange(async (_event, nextSession) => {
+      if (nextSession) await ensureFinanzblickUser(nextSession)
+      setSession(nextSession)
+    }) || { data:null }
+
     const onHash = () => {
       if (window.location.hash === '#verliehen') setRoute('loans')
       else if (window.location.hash === '#auswertung') setRoute('analysis')
