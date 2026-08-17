@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import { ArrowLeft, BarChart3, HandCoins } from 'lucide-react'
+import { ArrowLeft, BarChart3, HandCoins, RefreshCw } from 'lucide-react'
 import App from './App'
 import Loans from './Loans'
 import VariableAnalysis from './VariableAnalysis'
@@ -39,6 +39,10 @@ function Root() {
 
   function openAnalysis() {
     window.location.hash = 'auswertung'
+  }
+
+  function refreshData() {
+    window.location.reload()
   }
 
   function back() {
@@ -89,6 +93,7 @@ function Root() {
     {session && <>
       <ReportActions />
       <div className="finance-shortcuts">
+        <button className="refresh-shortcut" onClick={refreshData} title="Daten aktualisieren" aria-label="Daten aktualisieren"><RefreshCw size={20}/><span>Aktualisieren</span></button>
         <button className="analysis-shortcut" onClick={openAnalysis} title="Variable Kosten auswerten"><BarChart3 size={20}/><span>Auswertung</span></button>
         <button className="loan-shortcut" onClick={openLoans} title="Verliehenes Geld öffnen"><HandCoins size={20}/><span>Verliehen</span></button>
       </div>
