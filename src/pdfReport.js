@@ -12,7 +12,7 @@ const date = (value) => value
 
 const monthly = (amount, interval) => {
   const value = Number(amount) || 0
-  if (interval === 'einmalig') return 0
+  if (interval === 'einmalig' || interval === 'Einzelausgabe') return 0
   if (interval === 'jährlich') return value / 12
   if (interval === 'halbjährlich') return value / 6
   if (interval === 'quartalsweise') return value / 3
@@ -20,14 +20,33 @@ const monthly = (amount, interval) => {
   return value
 }
 
+const isVariableSingle = (item) => item.type === 'Variable Kosten' && item.interval === 'Einzelausgabe'
+const isSameMonth = (value, reference = new Date()) => {
+  if (!value) return false
+  const d = new Date(`${value}T00:00:00`)
+  return d.getFullYear() === reference.getFullYear() && d.getMonth() === reference.getMonth()
+}
+const isSameYear = (value, reference = new Date()) => {
+  if (!value) return false
+  const d = new Date(`${value}T00:00:00`)
+  return d.getFullYear() === reference.getFullYear()
+}
+
 export async function createFinancePdf({ categories, expenses, incomes }) {
   const categoryById = Object.fromEntries((categories || []).map(c => [c.id, c.name]))
-  const recurringExpenses = (expenses || []).filter(e => e.interval !== 'einmalig' && e.type !== 'Einmalige Ausgabe')
+  const recurringExpenses = (expenses || []).filter(e => e.interval !== 'einmalig' && e.type !== 'Einmalige Ausgabe' && !isVariableSingle(e))
+  const variableSingles = (expenses || []).filter(isVariableSingle)
+  const currentMonthVariable = variableSingles.filter(e => isSameMonth(e.nextPaymentDate))
+  const currentYearVariable = variableSingles.filter(e => isSameYear(e.nextPaymentDate))
   const oneTimeExpenses = (expenses || []).filter(e => e.interval === 'einmalig' || e.type === 'Einmalige Ausgabe')
   const recurringIncomes = (incomes || []).filter(i => i.interval !== 'einmalig')
   const oneTimeIncomes = (incomes || []).filter(i => i.interval === 'einmalig')
 
-  const monthlyExpenses = recurringExpenses.reduce((sum, item) => sum + monthly(item.amount, item.interval), 0)
+  const recurringMonthlyExpenses = recurringExpenses.reduce((sum, item) => sum + monthly(item.amount, item.interval), 0)
+  const currentMonthVariableTotal = currentMonthVariable.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const currentYearVariableTotal = currentYearVariable.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const monthlyExpenses = recurringMonthlyExpenses + currentMonthVariableTotal
+  const annualExpenses = recurringMonthlyExpenses * 12 + currentYearVariableTotal
   const monthlyIncome = recurringIncomes.reduce((sum, item) => sum + monthly(item.amount, item.interval), 0)
   const oneTimeExpenseTotal = oneTimeExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0)
   const oneTimeIncomeTotal = oneTimeIncomes.reduce((sum, item) => sum + Number(item.amount || 0), 0)
@@ -105,18 +124,27 @@ export async function createFinancePdf({ categories, expenses, incomes }) {
 
   section('Zusammenfassung')
   line('Einnahmen / Monat', money(monthlyIncome), true)
-  line('Laufende Kosten / Monat', money(monthlyExpenses), true)
-  line('Laufende Kosten / Jahr', money(monthlyExpenses * 12))
-  line('Verfügbar nach laufenden Kosten', money(monthlyIncome - monthlyExpenses), true)
+  line('Kosten aktueller Monat', money(monthlyExpenses), true)
+  line('Kosten aktuelles Jahr / Prognose', money(annualExpenses))
+  line('Variable laufende Kosten diesen Monat', money(currentMonthVariableTotal))
+  line('Verfügbar diesen Monat', money(monthlyIncome - monthlyExpenses), true)
   line('Einmalige Einnahmen', money(oneTimeIncomeTotal))
   line('Einmalige Ausgaben', money(oneTimeExpenseTotal))
   line('Verliehen – noch offen', money(loanTotals.open), true)
 
-  section('Laufende Ausgaben')
-  if (!recurringExpenses.length) line('Keine laufenden Ausgaben vorhanden', '')
+  section('Regelmäßige laufende Ausgaben')
+  if (!recurringExpenses.length) line('Keine regelmäßigen laufenden Ausgaben vorhanden', '')
   recurringExpenses.forEach(item => wrappedRow(
     item.name,
     `${categoryById[item.categoryId] || 'Ohne Kategorie'} · ${item.interval} · ${item.type}${item.paymentMethod ? ` · ${item.paymentMethod}` : ''}`,
+    money(item.amount)
+  ))
+
+  section('Variable laufende Kosten')
+  if (!variableSingles.length) line('Keine variablen Einzelausgaben vorhanden', '')
+  variableSingles.forEach(item => wrappedRow(
+    item.name,
+    `${categoryById[item.categoryId] || 'Ohne Kategorie'} · Einzelausgabe${item.nextPaymentDate ? ` · ${date(item.nextPaymentDate)}` : ''}${item.paymentMethod ? ` · ${item.paymentMethod}` : ''}`,
     money(item.amount)
   ))
 
