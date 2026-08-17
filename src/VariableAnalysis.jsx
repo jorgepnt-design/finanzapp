@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { BarChart3, CalendarDays, ShoppingCart } from 'lucide-react'
 import { supabase } from './supabase'
+import './analysis.css'
 
 const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
 const money = (value) => new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR' }).format(Number(value) || 0)
