@@ -349,7 +349,7 @@ export default function App() {
                   {categoryTotals.length ? categoryTotals.map(c => (
                     <div key={c.name} className="bar-row">
                       <div className="bar-label"><span>{c.name}</span><strong>{currency(c.value)}</strong></div>
-                      <div className="bar-track"><div className="bar-fill" style={{width:`${Math.max(6,(c.value/monthlyExpenses)*100)}%`}}/></div>
+                      <div className="bar-track"><div className="bar-fill" style={{width:`${monthlyExpenses ? (c.value/monthlyExpenses)*100 : 0}%`}}/></div>
                     </div>
                   )) : <p className="muted">Noch keine laufenden Ausgaben vorhanden.</p>}
                 </div>
