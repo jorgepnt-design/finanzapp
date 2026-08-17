@@ -14,6 +14,7 @@
   padding:11px 13px;
   display:flex;
   align-items:center;
+  justify-content:center;
   gap:7px;
   font-weight:800;
   box-shadow:0 10px 26px rgba(17,24,39,.16);
@@ -28,9 +29,12 @@
     bottom:205px;
   }
   .report-action{
-    padding:10px 12px;
+    width:52px;
+    height:52px;
+    padding:0;
+    border-radius:16px;
   }
-  .report-action span{font-size:13px}
+  .report-action span{display:none}
 }
 
 @media(max-width:560px){
@@ -39,5 +43,8 @@
     bottom:200px;
     gap:6px;
   }
-  .report-action{padding:10px}
+  .report-action{
+    width:50px;
+    height:50px;
+  }
 }
