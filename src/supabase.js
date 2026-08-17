@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut
@@ -46,17 +47,25 @@ function authError(error) {
     'auth/weak-password': 'Das Passwort ist zu schwach. Bitte verwende mindestens 6 Zeichen.',
     'auth/too-many-requests': 'Zu viele Anmeldeversuche. Bitte versuche es später erneut.',
     'auth/user-disabled': 'Dieses Benutzerkonto wurde deaktiviert.',
-    'auth/network-request-failed': 'Netzwerkfehler. Bitte prüfe deine Internetverbindung.'
+    'auth/network-request-failed': 'Netzwerkfehler. Bitte prüfe deine Internetverbindung.',
+    'auth/email-not-verified': 'Bitte bestätige zuerst deine E-Mail-Adresse über den Link, den FinanzBlick dir geschickt hat.'
   }
   return { ...error, message: messages[code] || error?.message || 'Anmeldung fehlgeschlagen.' }
 }
 
 async function buildSession(user) {
   if (!user || !dataClient) return null
+  await user.reload()
 
-  // The RPC maps the Firebase login to a stable FinanzBlick owner UUID.
-  // Existing Supabase-finance data is matched by the verified JWT email.
-  await user.getIdToken(false)
+  if (!user.emailVerified) {
+    const error = new Error('Email not verified')
+    error.code = 'auth/email-not-verified'
+    throw error
+  }
+
+  // The RPC maps the verified Firebase email to a stable FinanzBlick owner UUID.
+  // Existing Supabase-finance data is therefore preserved for the same email address.
+  await user.getIdToken(true)
   const { data: ownerId, error } = await dataClient.rpc('ensure_finanzblick_identity')
   if (error) throw error
 
@@ -115,8 +124,15 @@ const authBridge = {
   async signUp({ email, password }) {
     try {
       const credential = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password)
-      const session = await buildSession(credential.user)
-      return { data: { user: session.user, session }, error: null }
+      await sendEmailVerification(credential.user)
+      await firebaseSignOut(firebaseAuth)
+      return {
+        data: {
+          user: { id: credential.user.uid, email: credential.user.email },
+          session: null
+        },
+        error: null
+      }
     } catch (error) {
       return { data: { user: null, session: null }, error: authError(error) }
     }
