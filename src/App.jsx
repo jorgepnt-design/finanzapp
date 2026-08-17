@@ -12,6 +12,14 @@ const DEFAULT_CATEGORIES = [
   'Freizeit','Rücklagen','Sonstiges'
 ]
 
+const EXPENSE_TYPES = [
+  { value: 'Fixkosten', label: 'Fixkosten' },
+  { value: 'Variable Kosten', label: 'Variable laufende Kosten' },
+  { value: 'Rücklage', label: 'Rücklage' },
+  { value: 'Sparen', label: 'Sparen' },
+  { value: 'Einmalige Ausgabe', label: 'Einmalige Ausgaben' }
+]
+
 const isOneTimeExpense = (expense) => expense.interval === 'einmalig' || expense.type === 'Einmalige Ausgabe'
 
 const intervalToMonthly = (amount, interval) => {
@@ -36,6 +44,7 @@ export default function App() {
   const [modal, setModal] = useState(null)
   const [editCategory, setEditCategory] = useState(null)
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('all')
+  const [expenseTypeFilter, setExpenseTypeFilter] = useState('all')
 
   useEffect(() => {
     if (!supabase) {
@@ -115,12 +124,11 @@ export default function App() {
 
   const recurringExpenses = useMemo(() => expenses.filter(e => !isOneTimeExpense(e)), [expenses])
   const oneTimeExpenses = useMemo(() => expenses.filter(isOneTimeExpense), [expenses])
-  const filteredExpenses = useMemo(
-    () => expenseCategoryFilter === 'all'
-      ? expenses
-      : expenses.filter(e => e.categoryId === expenseCategoryFilter),
-    [expenses, expenseCategoryFilter]
-  )
+  const filteredExpenses = useMemo(() => expenses.filter(e => {
+    const categoryMatches = expenseCategoryFilter === 'all' || e.categoryId === expenseCategoryFilter
+    const typeMatches = expenseTypeFilter === 'all' || e.type === expenseTypeFilter
+    return categoryMatches && typeMatches
+  }), [expenses, expenseCategoryFilter, expenseTypeFilter])
 
   const monthlyExpenses = useMemo(
     () => recurringExpenses.reduce((s, e) => s + intervalToMonthly(e.amount, e.interval), 0),
@@ -245,6 +253,11 @@ export default function App() {
     setSyncState('✓ Synchronisiert')
   }
 
+  function resetExpenseFilters() {
+    setExpenseCategoryFilter('all')
+    setExpenseTypeFilter('all')
+  }
+
   function showSyncError(error) {
     console.error(error)
     setSyncState('Synchronisierung fehlgeschlagen')
@@ -347,20 +360,27 @@ export default function App() {
                   {categories.map(c => <option value={c.id} key={c.id}>{c.name}</option>)}
                 </select>
               </label>
-              {expenseCategoryFilter !== 'all' && (
-                <button className="ghost" onClick={()=>setExpenseCategoryFilter('all')}>Filter zurücksetzen</button>
+              <label className="field" style={{minWidth:'220px', maxWidth:'340px'}}>
+                <span>Nach Art filtern</span>
+                <select value={expenseTypeFilter} onChange={e=>setExpenseTypeFilter(e.target.value)}>
+                  <option value="all">Alle Arten</option>
+                  {EXPENSE_TYPES.map(type => <option value={type.value} key={type.value}>{type.label}</option>)}
+                </select>
+              </label>
+              {(expenseCategoryFilter !== 'all' || expenseTypeFilter !== 'all') && (
+                <button className="ghost" onClick={resetExpenseFilters}>Filter zurücksetzen</button>
               )}
               <span className="muted" style={{marginBottom:'12px'}}>{filteredExpenses.length} von {expenses.length} Ausgaben</span>
             </div>
             <div className="list">
               {!expenses.length && <p className="muted">Noch keine Ausgaben gespeichert.</p>}
-              {!!expenses.length && !filteredExpenses.length && <p className="muted">In dieser Kategorie sind noch keine Ausgaben gespeichert.</p>}
+              {!!expenses.length && !filteredExpenses.length && <p className="muted">Für diese Filter sind noch keine Ausgaben gespeichert.</p>}
               {filteredExpenses.map(e => (
                 <div className="list-item" key={e.id}>
                   <div className="list-icon">{e.name.slice(0,1).toUpperCase()}</div>
                   <div className="list-main">
                     <strong>{e.name}</strong>
-                    <span>{categoryById[e.categoryId] || 'Ohne Kategorie'} · {e.interval} · {e.type}</span>
+                    <span>{categoryById[e.categoryId] || 'Ohne Kategorie'} · {e.interval} · {e.type === 'Variable Kosten' ? 'Variable laufende Kosten' : e.type}</span>
                     {(e.provider || e.nextPaymentDate) && <span className="list-extra">
                       {e.provider ? `Anbieter: ${e.provider}` : ''}{e.provider && e.nextPaymentDate ? ' · ' : ''}{e.nextPaymentDate ? `${isOneTimeExpense(e) ? 'Zahlungsdatum' : 'Nächste Zahlung'}: ${formatDate(e.nextPaymentDate)}` : ''}
                     </span>}
@@ -505,7 +525,7 @@ function ExpenseModal({categories, expense, onClose, onSave}) {
         <Field label="Betrag"><input required type="number" min="0" step="0.01" value={form.amount} onChange={e=>set('amount',e.target.value)}/></Field>
         <Field label="Kategorie"><select required value={form.categoryId} onChange={e=>set('categoryId',e.target.value)}>{categories.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></Field>
         <Field label="Intervall"><select value={form.interval} onChange={e=>changeInterval(e.target.value)}>{['monatlich','alle 2 Monate','quartalsweise','halbjährlich','jährlich','einmalig'].map(x=><option key={x}>{x}</option>)}</select></Field>
-        <Field label="Art"><select value={form.type} onChange={e=>set('type',e.target.value)} disabled={oneTime}>{['Fixkosten','Variable Kosten','Rücklage','Sparen','Einmalige Ausgabe'].map(x=><option key={x}>{x}</option>)}</select></Field>
+        <Field label="Art"><select value={form.type} onChange={e=>set('type',e.target.value)} disabled={oneTime}>{['Fixkosten','Variable Kosten','Rücklage','Sparen','Einmalige Ausgabe'].map(x=><option key={x} value={x}>{x === 'Variable Kosten' ? 'Variable laufende Kosten' : x}</option>)}</select></Field>
         <Field label="Anbieter / Vertragspartner"><input value={form.provider} onChange={e=>set('provider',e.target.value)} placeholder={oneTime ? 'z. B. MediaMarkt, Bauhaus' : 'z. B. HUK24, Allianz, Entega'}/></Field>
         <Field label="Vertragsnummer / Beleg"><input value={form.contractNumber} onChange={e=>set('contractNumber',e.target.value)} /></Field>
         <Field label="Zahlungsart"><select value={form.paymentMethod} onChange={e=>set('paymentMethod',e.target.value)}><option value="">Nicht angegeben</option>{['Lastschrift','Dauerauftrag','Überweisung','Kreditkarte','PayPal','Bar','Sonstiges'].map(x=><option key={x}>{x}</option>)}</select></Field>
