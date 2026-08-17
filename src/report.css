@@ -26,7 +26,11 @@
 @media(max-width:900px){
   .report-actions{
     right:14px;
-    bottom:205px;
+    bottom:210px;
+    display:grid;
+    grid-template-columns:52px;
+    gap:10px;
+    justify-items:center;
   }
   .report-action{
     width:52px;
@@ -40,8 +44,9 @@
 @media(max-width:560px){
   .report-actions{
     right:14px;
-    bottom:200px;
-    gap:6px;
+    bottom:206px;
+    grid-template-columns:50px;
+    gap:10px;
   }
   .report-action{
     width:50px;
