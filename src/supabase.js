@@ -14,7 +14,7 @@ const url = import.meta.env.VITE_SUPABASE_URL
 const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyCKQWleDpSksPq5HcDFmUYtMRDBlcSYbCk',
+  apiKey: 'AIzaSyCKQWleDp5ksPq5HcDFmUYtMRDBlcSYbCk',
   authDomain: 'finanzblick-9c08c.firebaseapp.com',
   projectId: 'finanzblick-9c08c',
   storageBucket: 'finanzblick-9c08c.firebasestorage.app',
