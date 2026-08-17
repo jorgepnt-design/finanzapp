@@ -15,7 +15,12 @@
 .month-analysis-card small{color:#6b7280;font-size:11px}
 @media(max-width:1000px){.month-analysis-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:900px){
-  .finance-shortcuts{right:14px;bottom:86px}
+  .finance-shortcuts{
+    right:14px;
+    bottom:86px;
+    gap:10px;
+    justify-items:center;
+  }
   .finance-shortcuts .loan-shortcut,.finance-shortcuts .analysis-shortcut{
     width:52px;
     height:52px;
