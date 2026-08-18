@@ -25,6 +25,78 @@ async function ensureFinanzblickUser(session) {
   if (error) console.error('FinanzBlick-Aktivierung fehlgeschlagen:', error)
 }
 
+function PasswordEyeEnhancer() {
+  useEffect(() => {
+    const eyeSvg = `
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2.062 12.348a1 1 0 0 1 0-.696C3.77 7.593 7.288 5 12 5c4.712 0 8.23 2.593 9.938 6.652a1 1 0 0 1 0 .696C20.23 16.407 16.712 19 12 19c-4.712 0-8.23-2.593-9.938-6.652Z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>`
+    const eyeOffSvg = `
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m2 2 20 20"/>
+        <path d="M6.71 6.71C4.9 7.9 3.48 9.58 2.62 11.65a1 1 0 0 0 0 .7C4.32 16.4 7.84 19 12 19c1.5 0 2.87-.29 4.08-.82"/>
+        <path d="M10.73 5.08A9.7 9.7 0 0 1 12 5c4.16 0 7.68 2.6 9.38 6.65a1 1 0 0 1 0 .7 11.2 11.2 0 0 1-2.09 3.24"/>
+        <path d="M14.12 14.12A3 3 0 0 1 9.88 9.88"/>
+      </svg>`
+
+    const enhance = () => {
+      document.querySelectorAll('.auth-card input[type="password"], .auth-card input[data-password-visible="true"]').forEach(input => {
+        if (input.dataset.eyeReady === 'true') return
+        input.dataset.eyeReady = 'true'
+
+        const field = input.closest('.field')
+        if (!field) return
+        field.style.position = 'relative'
+        input.style.paddingRight = '52px'
+
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'password-eye-toggle'
+        button.setAttribute('aria-label', 'Passwort anzeigen')
+        button.setAttribute('title', 'Passwort anzeigen')
+        button.innerHTML = eyeSvg
+        Object.assign(button.style, {
+          position: 'absolute',
+          right: '14px',
+          bottom: '12px',
+          width: '36px',
+          height: '36px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '0',
+          background: 'transparent',
+          color: '#475569',
+          padding: '0',
+          cursor: 'pointer',
+          zIndex: '2'
+        })
+
+        button.addEventListener('click', () => {
+          const show = input.type === 'password'
+          input.type = show ? 'text' : 'password'
+          if (show) input.dataset.passwordVisible = 'true'
+          else delete input.dataset.passwordVisible
+          button.innerHTML = show ? eyeOffSvg : eyeSvg
+          button.setAttribute('aria-label', show ? 'Passwort ausblenden' : 'Passwort anzeigen')
+          button.setAttribute('title', show ? 'Passwort ausblenden' : 'Passwort anzeigen')
+          input.focus()
+        })
+
+        field.appendChild(button)
+      })
+    }
+
+    enhance()
+    const observer = new MutationObserver(enhance)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
+
+  return null
+}
+
 function QuotaEnhancer({ active }) {
   useEffect(() => {
     if (!active) return
@@ -162,6 +234,7 @@ function Root() {
 
   return <>
     <App />
+    <PasswordEyeEnhancer />
     <QuotaEnhancer active={Boolean(session)} />
     {session && <>
       <ReportActions />
