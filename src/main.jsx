@@ -97,6 +97,70 @@ function PasswordEyeEnhancer() {
   return null
 }
 
+function PureMonthlyCostsEnhancer({ active }) {
+  useEffect(() => {
+    if (!active || !supabase) return
+
+    let currentValue = null
+    let cancelled = false
+
+    const formatCurrency = (value) => new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(value)
+
+    const renderCard = () => {
+      if (cancelled || currentValue === null) return
+      const grid = document.querySelector('.metric-grid')
+      if (!grid) return
+
+      let card = document.querySelector('[data-pure-monthly-costs="true"]')
+      if (!card) {
+        card = document.createElement('div')
+        card.className = 'metric-card'
+        card.dataset.pureMonthlyCosts = 'true'
+        card.innerHTML = '<div class="metric-icon">€</div><span>Reine Monatskosten</span><strong></strong>'
+        const firstMetric = grid.querySelector('.metric-card')
+        if (firstMetric) firstMetric.insertAdjacentElement('afterend', card)
+        else grid.appendChild(card)
+      }
+
+      const valueNode = card.querySelector('strong')
+      const formatted = formatCurrency(currentValue)
+      if (valueNode && valueNode.textContent !== formatted) valueNode.textContent = formatted
+    }
+
+    const load = async () => {
+      const { data, error } = await supabase.from('expenses').select('*')
+      if (cancelled) return
+      if (error) {
+        console.error('Reine Monatskosten konnten nicht geladen werden:', error)
+        return
+      }
+
+      currentValue = (data || [])
+        .filter(expense => expense.payment_interval === 'monatlich')
+        .reduce((sum, expense) => sum + Number(expense.amount || 0), 0)
+
+      renderCard()
+    }
+
+    load()
+    const observer = new MutationObserver(renderCard)
+    observer.observe(document.body, { childList: true, subtree: true })
+    window.addEventListener('focus', load)
+
+    return () => {
+      cancelled = true
+      observer.disconnect()
+      window.removeEventListener('focus', load)
+      document.querySelector('[data-pure-monthly-costs="true"]')?.remove()
+    }
+  }, [active])
+
+  return null
+}
+
 function QuotaEnhancer({ active }) {
   useEffect(() => {
     if (!active) return
@@ -235,6 +299,7 @@ function Root() {
   return <>
     <App />
     <PasswordEyeEnhancer />
+    <PureMonthlyCostsEnhancer active={Boolean(session)} />
     <QuotaEnhancer active={Boolean(session)} />
     {session && <>
       <ReportActions />
