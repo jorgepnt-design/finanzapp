@@ -114,6 +114,18 @@ function PureMonthlyCostsEnhancer({ active }) {
       const grid = document.querySelector('.metric-grid')
       if (!grid) return
 
+      const originalCostCard = [...grid.querySelectorAll('.metric-card')]
+        .find(card => card.querySelector('span')?.textContent?.trim() === 'Kosten aktueller Monat')
+      if (originalCostCard && !originalCostCard.querySelector('[data-prorated-cost-note="true"]')) {
+        const note = document.createElement('small')
+        note.dataset.proratedCostNote = 'true'
+        note.style.marginTop = '6px'
+        note.style.display = 'block'
+        note.style.opacity = '.72'
+        note.textContent = 'Enthält jährliche, halbjährliche, quartalsweise und zweimonatliche Kosten anteilig auf den Monat umgerechnet'
+        originalCostCard.appendChild(note)
+      }
+
       let costCard = document.querySelector('[data-pure-monthly-costs="true"]')
       if (!costCard) {
         costCard = document.createElement('div')
@@ -175,6 +187,7 @@ function PureMonthlyCostsEnhancer({ active }) {
       window.removeEventListener('focus', load)
       document.querySelector('[data-pure-monthly-costs="true"]')?.remove()
       document.querySelector('[data-pure-monthly-available="true"]')?.remove()
+      document.querySelector('[data-prorated-cost-note="true"]')?.remove()
     }
   }, [active])
 
