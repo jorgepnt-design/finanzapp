@@ -109,25 +109,44 @@ function PureMonthlyCostsEnhancer({ active }) {
       currency: 'EUR'
     }).format(value)
 
-    const renderCard = () => {
+    const renderCards = () => {
       if (cancelled || currentValue === null) return
       const grid = document.querySelector('.metric-grid')
       if (!grid) return
 
-      let card = document.querySelector('[data-pure-monthly-costs="true"]')
-      if (!card) {
-        card = document.createElement('div')
-        card.className = 'metric-card'
-        card.dataset.pureMonthlyCosts = 'true'
-        card.innerHTML = '<div class="metric-icon">€</div><span>Reine Monatskosten</span><strong></strong>'
+      let costCard = document.querySelector('[data-pure-monthly-costs="true"]')
+      if (!costCard) {
+        costCard = document.createElement('div')
+        costCard.className = 'metric-card'
+        costCard.dataset.pureMonthlyCosts = 'true'
+        costCard.innerHTML = '<div class="metric-icon">€</div><span>Reine Monatskosten</span><strong></strong><small style="margin-top:6px;display:block;opacity:.72">Nur Ausgaben mit Intervall „monatlich“</small>'
         const firstMetric = grid.querySelector('.metric-card')
-        if (firstMetric) firstMetric.insertAdjacentElement('afterend', card)
-        else grid.appendChild(card)
+        if (firstMetric) firstMetric.insertAdjacentElement('afterend', costCard)
+        else grid.appendChild(costCard)
       }
+      const costValueNode = costCard.querySelector('strong')
+      const formattedCosts = formatCurrency(currentValue)
+      if (costValueNode && costValueNode.textContent !== formattedCosts) costValueNode.textContent = formattedCosts
 
-      const valueNode = card.querySelector('strong')
-      const formatted = formatCurrency(currentValue)
-      if (valueNode && valueNode.textContent !== formatted) valueNode.textContent = formatted
+      const incomeMetric = [...grid.querySelectorAll('.metric-card')]
+        .find(card => card.querySelector('span')?.textContent?.trim() === 'Einnahmen / Monat')
+      if (!incomeMetric) return
+      const income = parseEuro(incomeMetric.querySelector('strong')?.textContent)
+      const available = income - currentValue
+
+      let availableCard = document.querySelector('[data-pure-monthly-available="true"]')
+      if (!availableCard) {
+        availableCard = document.createElement('div')
+        availableCard.className = `metric-card ${available >= 0 ? 'positive' : 'negative'}`
+        availableCard.dataset.pureMonthlyAvailable = 'true'
+        availableCard.innerHTML = '<div class="metric-icon">€</div><span>Verfügbar – nur Monatskosten</span><strong></strong><small style="margin-top:6px;display:block;opacity:.72">Ohne jährliche, halbjährliche, quartalsweise und zweimonatliche Kosten</small>'
+        costCard.insertAdjacentElement('afterend', availableCard)
+      }
+      availableCard.classList.toggle('positive', available >= 0)
+      availableCard.classList.toggle('negative', available < 0)
+      const availableValueNode = availableCard.querySelector('strong')
+      const formattedAvailable = formatCurrency(available)
+      if (availableValueNode && availableValueNode.textContent !== formattedAvailable) availableValueNode.textContent = formattedAvailable
     }
 
     const load = async () => {
@@ -142,11 +161,11 @@ function PureMonthlyCostsEnhancer({ active }) {
         .filter(expense => expense.payment_interval === 'monatlich')
         .reduce((sum, expense) => sum + Number(expense.amount || 0), 0)
 
-      renderCard()
+      renderCards()
     }
 
     load()
-    const observer = new MutationObserver(renderCard)
+    const observer = new MutationObserver(renderCards)
     observer.observe(document.body, { childList: true, subtree: true })
     window.addEventListener('focus', load)
 
@@ -155,6 +174,7 @@ function PureMonthlyCostsEnhancer({ active }) {
       observer.disconnect()
       window.removeEventListener('focus', load)
       document.querySelector('[data-pure-monthly-costs="true"]')?.remove()
+      document.querySelector('[data-pure-monthly-available="true"]')?.remove()
     }
   }, [active])
 
